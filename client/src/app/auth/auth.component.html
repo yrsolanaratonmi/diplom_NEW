@@ -2,14 +2,14 @@
   <div class="form">
     <div>
       <tui-input formControlName="username" [tuiTextfieldCleaner]="true">
-        Username
+        Email
         <input tuiTextfield />
       </tui-input>
       <tui-error
         *ngIf="
           authForm.controls.username.invalid && authForm.controls.username.dirty
         "
-        [error]="'min length 6 symbols'"
+        [error]="'incorrect email'"
       ></tui-error>
     </div>
     <div>

@@ -61,7 +61,6 @@ export class AuthService {
     this.cookieService.delete('refreshToken');
     localStorage.removeItem('keyId');
     this.isUserLoggedIn$.next(false);
-    window.location.reload();
   }
 
   refresh() {
