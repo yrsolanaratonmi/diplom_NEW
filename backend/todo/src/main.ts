@@ -1,6 +1,8 @@
 import express from "express"
 import pg from "pg"
-import { v4 } from "uuid"
+import {v4} from "uuid"
+import CryptoJS from 'crypto-js';
+
 
 
 const db = new pg.Client({
@@ -34,10 +36,16 @@ const parseRequestUserData = (req: express.Request): UserData => ({
     id: req.headers["x-user-id"] as string,
     encode: (content: string) => {
         const keyContent = req.headers['x-key-content'] as string;
-        return content.split("").map((x, i) => (x + keyContent[i % keyContent.length])).join("");
+        const encoded =  CryptoJS.AES.encrypt(content, keyContent).toString();
+        return encoded
     },
     decode: (content: string) => {
-        return content.split("").map((x, i) => i % 2 ? "" : x).join("");
+        const keyContent = req.headers['x-key-content'] as string;
+
+        const decoded = CryptoJS.AES.decrypt(content, keyContent).toString(
+            CryptoJS.enc.Utf8
+        );
+        return decoded
     },
 })
 
@@ -111,7 +119,7 @@ app.delete("/:id", async (req, res) => {
 app.get("/", async (req, res) => {
     console.log("test");
     const userData = parseRequestUserData(req)
-    
+
     let author = userData.id;
 
     if (!!req.query['author'] && userData.hasRole("admin")) {
@@ -123,7 +131,7 @@ app.get("/", async (req, res) => {
             id,
             title,
             description,
-            createdAt 
+            createdAt
         FROM todos
         WHERE author = ${pg.escapeLiteral(author)}
     `);
