@@ -1,5 +1,7 @@
 import express from "express"
 import redis from "redis"
+import CryptoJS from 'crypto-js';
+
 
 const redisClient = await redis.createClient({
     url: "redis://default:redispw@redis:6379"
@@ -19,10 +21,15 @@ const parseRequestUserData = (req: express.Request): UserData => ({
     id: req.headers["x-user-id"] as string,
     encode: (content: string) => {
         const keyContent = req.headers['x-key-content'] as string;
-        return content.split("").map((x, i) => (x + keyContent[i % keyContent.length])).join("");
+        const encoded =  CryptoJS.AES.encrypt(content, keyContent).toString();
+        return encoded
     },
     decode: (content: string) => {
-        return content.split("").map((x, i) => i % 2 ? "" : x).join("");
+        const keyContent = req.headers['x-key-content'] as string;
+        const decoded = CryptoJS.AES.decrypt(content, keyContent).toString(
+            CryptoJS.enc.Utf8
+        );
+        return decoded
     },
 })
 

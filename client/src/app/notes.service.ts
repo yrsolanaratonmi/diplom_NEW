@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import { BehaviorSubject, Observable, Subject, filter, map, tap } from 'rxjs';
 import { AuthService } from './auth.service';
+import * as CryptoJS from 'crypto-js';
 
 export interface Note {
   title: string;
@@ -40,17 +41,16 @@ export class NotesService {
 
   private encode(content: string) {
     const keyContent = localStorage.getItem('key') as string;
-    return content
-      .split('')
-      .map((x, i) => x + keyContent[i % keyContent.length])
-      .join('');
+
+    return CryptoJS.AES.encrypt(content, keyContent).toString();
   }
 
   private decode(content: string) {
-    return content
-      .split('')
-      .map((x, i) => (i % 2 ? '' : x))
-      .join('');
+    const keyContent = localStorage.getItem('key') as string;
+
+    return CryptoJS.AES.decrypt(content, keyContent).toString(
+      CryptoJS.enc.Utf8
+    );
   }
 
   getNotes(): Observable<Array<Note>> {

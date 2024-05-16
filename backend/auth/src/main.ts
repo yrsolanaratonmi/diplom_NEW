@@ -74,7 +74,7 @@ app.post("/register", express.json(), async (req, res) => {
     try {
         await db.query(`INSERT INTO users (id, login, password_hash, roles) values ('${user.id}', '${user.login}', '${user.passwordHash}', 'user')`)
         await db.query(`insert INTO keys (id, author, key) values (${pg.escapeLiteral(key.id)}, ${pg.escapeLiteral(user.id)}, ${pg.escapeLiteral(key.content)})`)
-        
+
         const { accessToken, refreshToken } = await generateTokensForUser({ id: user.id, roles: ["user"], key: key.id});
         res.send({
             accessToken,
@@ -110,7 +110,7 @@ app.post("/login", express.json(), async (req, res) => {
             res.status(401).send()
             return
         }
-        
+
         // return reuqest key
         if (!!body.keyId) {
             res.send(await generateTokensForUser({ id: userInDb.rows[0].id, roles: userInDb.rows[0].roles.split(","), key: body.keyId }));

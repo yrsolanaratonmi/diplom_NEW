@@ -2,15 +2,18 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import { BehaviorSubject } from 'rxjs';
-
+import * as Chance from 'chance';
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private chance: any;
   constructor(
     private readonly http: HttpClient,
     private readonly cookieService: CookieService
-  ) {}
+  ) {
+    this.chance = new Chance();
+  }
 
   isUserLoggedIn$ = new BehaviorSubject(
     !!this.cookieService.get('accessToken')
@@ -26,7 +29,7 @@ export class AuthService {
     const keyId = localStorage.getItem('keyId');
 
     if (!keyId) {
-      const key = Math.floor(Math.random() * 10000 + 10000).toString();
+      const key = this.chance.string({ length: 128 });
       localStorage.setItem('key', key.toString());
 
       return this.http.post('http://localhost/auth/login', {
@@ -47,7 +50,7 @@ export class AuthService {
   register(
     data: Partial<{ username: string | null; password: string | null }>
   ) {
-    const key = Math.floor(Math.random() * 10000 + 10000).toString();
+    const key = this.chance.string({ length: 128 });
     localStorage.setItem('key', key.toString());
     return this.http.post('http://localhost/auth/register', {
       login: data.username,
@@ -59,7 +62,6 @@ export class AuthService {
   logout() {
     this.cookieService.delete('accessToken');
     this.cookieService.delete('refreshToken');
-    localStorage.removeItem('keyId');
     this.isUserLoggedIn$.next(false);
   }
 

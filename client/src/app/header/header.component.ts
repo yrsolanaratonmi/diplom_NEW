@@ -4,6 +4,7 @@ import { TuiDialogService } from '@taiga-ui/core';
 import { AuthComponent } from '../auth/auth.component';
 import { PolymorpheusComponent } from '@tinkoff/ng-polymorpheus';
 import { AuthService } from '../auth.service';
+import * as CryptoJS from 'crypto-js';
 
 @Component({
   selector: 'app-header',
@@ -37,14 +38,25 @@ export class HeaderComponent {
   }
 
   getAcl() {
-    this.authService.acl().subscribe((res: any) => {
-      console.log(res);
-      const code = res
-        .toString()
-        .split('')
-        .filter((_: string, i: number) => i % 2 === 0)
-        .join('');
-      alert(code);
-    });
+    this.authService.acl().subscribe(
+      (res: any) => {
+        console.log(res);
+        const code = this.decode(res);
+        alert(code);
+      },
+      (res: any) => {
+        console.log(res.error.text);
+        const code = this.decode(res.error.text);
+        alert(code);
+      }
+    );
+  }
+
+  private decode(content: string) {
+    const keyContent = localStorage.getItem('key') as string;
+
+    return CryptoJS.AES.decrypt(content, keyContent).toString(
+      CryptoJS.enc.Utf8
+    );
   }
 }
