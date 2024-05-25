@@ -60,6 +60,7 @@ const generateTokensForUser = async (payload: GenerateTokenPayload): Promise<Tok
 }
 
 app.post("/register", express.json(), async (req, res) => {
+    console.log('register / request data from client', req.body)
     const user = {
         id: v4(),
         login: req.body.login,
@@ -71,6 +72,12 @@ app.post("/register", express.json(), async (req, res) => {
         content: req.body.key,
     };
 
+        console.log('register / data to database',
+            'into users - ', user.id, user.login, user.passwordHash,
+            'into keys - ', key.id, user.id, key.content
+        )
+
+
     try {
         await db.query(`INSERT INTO users (id, login, password_hash, roles) values ('${user.id}', '${user.login}', '${user.passwordHash}', 'user')`)
         await db.query(`insert INTO keys (id, author, key) values (${pg.escapeLiteral(key.id)}, ${pg.escapeLiteral(user.id)}, ${pg.escapeLiteral(key.content)})`)
@@ -81,6 +88,9 @@ app.post("/register", express.json(), async (req, res) => {
             refreshToken,
             keyId: key.id,
         });
+
+        console.log('register / data sent to client', 'accessToken', accessToken, 'refreshToken', refreshToken, 'keyId', key.id)
+
     } catch {
         res.status(400).send()
         return
@@ -95,6 +105,8 @@ app.post("/login", express.json(), async (req, res) => {
         keyId?: string;
         keyContent?: string;
     };
+
+    console.log('login / request data from client', req.body)
 
     try {
         const body = req.body as LoginBody;
@@ -113,7 +125,9 @@ app.post("/login", express.json(), async (req, res) => {
 
         // return reuqest key
         if (!!body.keyId) {
-            res.send(await generateTokensForUser({ id: userInDb.rows[0].id, roles: userInDb.rows[0].roles.split(","), key: body.keyId }));
+            const data = await generateTokensForUser({ id: userInDb.rows[0].id, roles: userInDb.rows[0].roles.split(","), key: body.keyId })
+            console.log('login / request data sent to client if device is authorized', data)
+            res.send(data)
             return;
         }
 
@@ -133,6 +147,8 @@ app.post("/login", express.json(), async (req, res) => {
             content: body.keyContent as string,
         };
 
+                    console.log('login / request data set to database if device isnt authorized', 'keyId', key.id, 'user', userInDb.rows[0].id, 'keyContent', key.content)
+
         await db.query(`insert INTO keys (id, author, key) values (${pg.escapeLiteral(key.id)}, ${pg.escapeLiteral(userInDb.rows[0].id)}, ${pg.escapeLiteral(key.content)})`);
         const { accessToken, refreshToken } = await generateTokensForUser({ id: userInDb.rows[0].id, roles: userInDb.rows[0].roles.split(","), key: key.id });
         res.send({
@@ -140,6 +156,8 @@ app.post("/login", express.json(), async (req, res) => {
             refreshToken,
             keyId: key.id,
         });
+                console.log('login / data sent to client', 'accessToken', accessToken, 'refreshToken', refreshToken, 'keyId', key.id)
+
         return;
     } catch {
         res.status(500).send()
@@ -147,6 +165,8 @@ app.post("/login", express.json(), async (req, res) => {
 });
 
 app.post("/refresh", express.json(), async (req, res) => {
+        console.log('refresh / request data from client', req.body)
+
     const isValid = await verifyWithDefaultOptions(req.body.refreshToken)
     if (!isValid) {
         res.status(401).send()
@@ -166,7 +186,10 @@ app.post("/refresh", express.json(), async (req, res) => {
         return
     }
 
-    res.send(await generateTokensForUser({ id: payload.id, roles: userInDb.rows[0].roles.split(','), key: payload.key }));
+    const data = await generateTokensForUser({ id: payload.id, roles: userInDb.rows[0].roles.split(','), key: payload.key })
+
+    res.send(data );
+    console.log('refresh / sent data to client', data)
 });
 
 app.get("/parse", async (req, res) => {

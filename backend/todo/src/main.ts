@@ -50,6 +50,7 @@ const parseRequestUserData = (req: express.Request): UserData => ({
 })
 
 app.post("/", express.json(), async (req, res) => {
+    console.log('new note / data from client', req.body)
     const userData = parseRequestUserData(req)
     const todo = {
         id: v4(),
@@ -58,6 +59,8 @@ app.post("/", express.json(), async (req, res) => {
         description: req.body.description,
         createdAt: Date.now(),
     }
+
+    console.log('new note / data set to database', 'todoId', todo.id, 'todoAuthor', todo.author, 'todoTitle', todo.title, 'todoDescription', todo.description)
 
     await db.query(`
         INSERT INTO todos (
@@ -74,10 +77,12 @@ app.post("/", express.json(), async (req, res) => {
             ${todo.createdAt}
         )
     `);
+    console.log('new todo / data sent to client', todo)
     res.send(todo)
 });
 
 app.patch("/:id", express.json(), async (req, res) => {
+    console.log('edit note / data from client', req.body)
     const userData = parseRequestUserData(req)
     const todo = {
         id: req.params.id,
@@ -86,6 +91,8 @@ app.patch("/:id", express.json(), async (req, res) => {
         description: userData.decode(req.body.description),
     }
 
+
+     console.log('edit note / data set to database', 'todoTitle', userData.decode(req.body.title), 'todoDescription', userData.decode(req.body.description), 'todoId', todo.id, 'todoAuthor', todo.author)
     await db.query(`
         UPDATE todos SET
         title = ${pg.escapeLiteral(todo.title)},
@@ -93,10 +100,13 @@ app.patch("/:id", express.json(), async (req, res) => {
         WHERE id = ${pg.escapeLiteral(todo.id)}
         AND author = ${pg.escapeLiteral(todo.author)}
     `);
+
+    console.log('edit note / nothing sent to client')
     res.send()
 });
 
 app.delete("/:id", async (req, res) => {
+       console.log('delete note / data from client', req.body)
     const userData = parseRequestUserData(req)
 
     const id = req.params.id;
@@ -112,12 +122,13 @@ app.delete("/:id", async (req, res) => {
         res.status(404).send()
         return;
     }
+    console.log('delete note / nothing sent to client')
 
     res.send();
 });
 
 app.get("/", async (req, res) => {
-    console.log("test");
+          console.log('get all notes / data from client', req.body)
     const userData = parseRequestUserData(req)
 
     let author = userData.id;
@@ -125,6 +136,8 @@ app.get("/", async (req, res) => {
     if (!!req.query['author'] && userData.hasRole("admin")) {
         author = req.query['author'] as string
     }
+
+    console.log('get all notes / data for filter in database', 'author', author)
 
     const list = await db.query(`
         SELECT
@@ -135,13 +148,18 @@ app.get("/", async (req, res) => {
         FROM todos
         WHERE author = ${pg.escapeLiteral(author)}
     `);
-    console.log(list.rows);
     res.send(list.rows.map(todo => ({
         id: todo.id,
         title: userData.encode(todo.title),
         description: userData.encode(todo.description),
         createdAt: +todo.createdat,
     })));
+    console.log('get all notes / data sent to client', list.rows.map(todo => ({
+        id: todo.id,
+        title: userData.encode(todo.title),
+        description: userData.encode(todo.description),
+        createdAt: +todo.createdat,
+    })))
 });
 
 app.listen(3000, () => console.log("started"));

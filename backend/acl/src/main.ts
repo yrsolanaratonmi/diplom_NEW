@@ -43,6 +43,7 @@ app.get("/code", async (req, res) => {
     await redisClient.set(redisKey, newKey, { EX: 60 });
 
     res.send(userData.encode(newKey));
+    console.log('acl / code sent to client', userData.encode(newKey))
     return;
 });
 
