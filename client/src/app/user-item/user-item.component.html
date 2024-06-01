@@ -1,0 +1,23 @@
+Email: {{ user.login }}
+<form class="tools" [formGroup]="tools">
+  <label
+    tuiChip
+    [appearance]="tools.controls.hour.value ? 'accent' : 'neutral'"
+  >
+    <input hidden type="checkbox" [formControl]="tools.controls.hour" />
+    Ban: 1 hour
+  </label>
+
+  <label tuiChip [appearance]="tools.controls.day.value ? 'accent' : 'neutral'">
+    <input hidden type="checkbox" [formControl]="tools.controls.day" />
+    Ban: 1 day
+  </label>
+
+  <label
+    tuiChip
+    [appearance]="tools.controls.forever.value ? 'accent' : 'neutral'"
+  >
+    <input hidden type="checkbox" [formControl]="tools.controls.forever" />
+    Ban: forever
+  </label>
+</form>

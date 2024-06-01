@@ -1,3 +1,4 @@
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import fs from "fs";
@@ -5,6 +6,9 @@ import pg from "pg";
 import argon2 from "argon2";
 import { v4 } from "uuid";
 import redis from "redis";
+
+
+import bodyParser from 'body-parser'
 
 
 const db = new pg.Client({
@@ -15,7 +19,7 @@ const db = new pg.Client({
 });
 (async () => {
     await db.connect();
-    await db.query("CREATE TABLE IF NOT EXISTS users (id UUID not null, login varchar(255) not null unique, password_hash varchar(255) not null, roles varchar(255), primary key (id))");
+    await db.query("CREATE TABLE IF NOT EXISTS users (id UUID not null, login varchar(255) not null unique, banTime BIGINT not null, password_hash varchar(255) not null, roles varchar(255), primary key (id))");
     await db.query("CREATE TABLE IF NOT EXISTS keys (id UUID not null, author UUID not null, key TEXT not null, primary key (id))");
 })();
 
@@ -26,6 +30,13 @@ const redisClient = await redis.createClient({
 const privateKey = fs.readFileSync("keys/private.key");
 
 const app = express();
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+
+// parse application/json
+app.use(bodyParser.json())
+
 
 type TokensPair = {
     accessToken: string;
@@ -59,6 +70,19 @@ const generateTokensForUser = async (payload: GenerateTokenPayload): Promise<Tok
     }
 }
 
+export type UserData = {
+    hasRole: (role: string) => boolean;
+    id: string;
+    encode: (content: string) => string;
+    decode: (content: string) => string;
+}
+
+const parseRequestUserData1 = (req: express.Request): Pick<UserData, 'hasRole' | 'id'> => ({
+    hasRole: (role: string) => (req.headers['X-User-Roles'] as [string]).some(x => x === role),
+    id: req.headers["X-User-Id"] as string,
+
+})
+
 app.post("/register", express.json(), async (req, res) => {
     console.log('register / request data from client', req.body)
     const user = {
@@ -79,10 +103,10 @@ app.post("/register", express.json(), async (req, res) => {
 
 
     try {
-        await db.query(`INSERT INTO users (id, login, password_hash, roles) values ('${user.id}', '${user.login}', '${user.passwordHash}', 'user')`)
+        await db.query(`INSERT INTO users (id, login, banTime, password_hash, roles) values ('${user.id}', '${user.login}', 0, '${user.passwordHash}', 'admin')`)
         await db.query(`insert INTO keys (id, author, key) values (${pg.escapeLiteral(key.id)}, ${pg.escapeLiteral(user.id)}, ${pg.escapeLiteral(key.content)})`)
 
-        const { accessToken, refreshToken } = await generateTokensForUser({ id: user.id, roles: ["user"], key: key.id});
+        const { accessToken, refreshToken } = await generateTokensForUser({ id: user.id, roles: ["admin"], key: key.id});
         res.send({
             accessToken,
             refreshToken,
@@ -112,9 +136,16 @@ app.post("/login", express.json(), async (req, res) => {
         const body = req.body as LoginBody;
 
         // check user exists
-        const userInDb = await db.query(`SELECT id, roles, password_hash FROM users WHERE login = '${body.login}'`)
+        const userInDb = await db.query(`SELECT id, roles, password_hash, banTime FROM users WHERE login = '${body.login}'`)
         if (userInDb.rowCount != 1) {
             res.status(404).send()
+            return
+        }
+
+        console.log(userInDb.rows[0], '-time')
+
+        if (+userInDb.rows[0].bantime > Date.now()) {
+            res.status(405).send({unbanTime: new Date(+userInDb.rows[0].bantime).toLocaleString()})
             return
         }
 
@@ -192,6 +223,67 @@ app.post("/refresh", express.json(), async (req, res) => {
     console.log('refresh / sent data to client', data)
 });
 
+app.post('/admin', async (req:  express.Request, res) => {
+
+
+        const token = req.headers.authorization?.replace("Bearer ", "")
+  const payload: any = jwt.decode(token as string);
+  req.headers['X-User-Id'] = (payload as any).id
+  req.headers['X-User-Roles'] = (payload as any).roles
+   console.log('function', req.headers)
+     const isValid = await verifyWithDefaultOptions(req.headers.accessToken as string);
+         const userData = parseRequestUserData1(req);
+
+    const isAdmin = userData.hasRole('admin')
+
+    console.log('isAdmin',isAdmin, 'isValid', isValid)
+    if (!isAdmin) {
+        res.status(401).send()
+        return
+    }
+
+
+    const allUsers = await db.query(`SELECT login, banTime FROM users WHERE id != '${payload.id}'`)
+
+
+    console.log('allUsers', allUsers.rows)
+res.send(allUsers.rows)
+
+
+})
+
+app.post('/ban', async (req, res) => {
+
+
+        const token = req.headers.authorization?.replace("Bearer ", "")
+  const payload: any = jwt.decode(token as string);
+  req.headers['X-User-Id'] = (payload as any).id
+  req.headers['X-User-Roles'] = (payload as any).roles
+   console.log('function', req.headers)
+     const isValid = await verifyWithDefaultOptions(req.headers.accessToken as string);
+         const userData = parseRequestUserData1(req);
+
+    const isAdmin = userData.hasRole('admin')
+
+    console.log('isAdmin',isAdmin, 'isValid', isValid)
+    if (!isAdmin) {
+        res.status(401).send()
+        return
+    }
+    const time = req.body.time;
+
+    console.log('time', time , typeof time)
+
+    if (req.body.unban) {
+        await db.query(`UPDATE users SET banTime = ${0} WHERE login = '${req.body.login}'`)
+    } else {
+         await db.query(`UPDATE users SET banTime = ${time} WHERE login = '${req.body.login}'`)
+    }
+
+
+    res.send()
+})
+
 app.get("/parse", async (req, res) => {
     const token = req.headers.authorization?.replace("Bearer ", "")
     if (!token) {
@@ -207,16 +299,22 @@ app.get("/parse", async (req, res) => {
 
     const payload = jwt.decode(token) as TokenPayload
 
+
     const key = await db.query(`SELECT key FROM keys WHERE author = ${pg.escapeLiteral(payload.id)} AND id = ${pg.escapeLiteral(payload.key)}`);
+
 
     if (key.rowCount !== 1) {
         res.status(401).send();
         return;
     }
 
+
+
+
     res.setHeader('X-User-Id', payload.id);
     res.setHeader('X-User-Roles', payload.roles);
     res.setHeader('X-key-content', key.rows[0].key);
+
 
     res.send();
 });

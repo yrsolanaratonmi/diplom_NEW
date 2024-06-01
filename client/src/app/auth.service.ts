@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import { BehaviorSubject } from 'rxjs';
 import * as Chance from 'chance';
+import { jwtDecode } from 'jwt-decode';
 @Injectable({
   providedIn: 'root',
 })
@@ -13,11 +14,26 @@ export class AuthService {
     private readonly cookieService: CookieService
   ) {
     this.chance = new Chance();
+    this.checkIsAdmin();
   }
 
   isUserLoggedIn$ = new BehaviorSubject(
     !!this.cookieService.get('accessToken')
   );
+
+  isUserAdmin$ = new BehaviorSubject(false);
+
+  checkIsAdmin() {
+    try {
+      const token = this.cookieService.get('accessToken');
+      if (!token) return;
+      const decode: any = jwtDecode(token);
+      const isAdmin = decode.roles.includes('admin');
+      this.isUserAdmin$.next(isAdmin);
+    } catch {
+      this.isUserAdmin$.next(false);
+    }
+  }
 
   login(
     data: Partial<{
@@ -63,6 +79,7 @@ export class AuthService {
     this.cookieService.delete('accessToken');
     this.cookieService.delete('refreshToken');
     this.isUserLoggedIn$.next(false);
+    this.isUserAdmin$.next(false);
   }
 
   refresh() {
@@ -81,5 +98,29 @@ export class AuthService {
       Authorization: 'Bearer ' + this.cookieService.get('accessToken'),
     });
     return this.http.get('http://localhost/acl/code', { headers: headers });
+  }
+
+  admin() {
+    const headers = new HttpHeaders({
+      Authorization: 'Bearer ' + this.cookieService.get('accessToken'),
+    });
+    return this.http.post<Array<{ login: string; bantime: string }>>(
+      'http://localhost/auth/admin',
+      { accessToken: this.cookieService.get('accessToken') },
+      { headers: headers }
+    );
+  }
+
+  ban(login: string, time: number, unban: boolean) {
+    const headers = new HttpHeaders({
+      Authorization: 'Bearer ' + this.cookieService.get('accessToken'),
+    });
+
+    const endTime = Date.now() + time;
+    return this.http.post(
+      'http://localhost/auth/ban',
+      { time: endTime, login: login, unban: unban },
+      { headers: headers }
+    );
   }
 }

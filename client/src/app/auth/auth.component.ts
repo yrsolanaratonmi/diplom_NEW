@@ -33,6 +33,24 @@ export class AuthComponent {
     aclKey: new FormControl(''),
   });
 
+  private convertTo24HourFormat(dateString) {
+    const date = new Date(dateString);
+
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const hours = date.getHours() + 3;
+    const minutes = date.getMinutes();
+
+    const formattedDay = day < 10 ? '0' + day : day;
+    const formattedMonth = month < 10 ? '0' + month : month;
+    const formattedHours = hours < 10 ? '0' + hours : hours;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+    return `${formattedDay}/${formattedMonth}/${year}, ${formattedHours}:${formattedMinutes}`;
+  }
+
   login() {
     if (!this.keyId && !this.authForm.controls.aclKey.value) {
       this.message$.next('u need to enter acl key from authorised device');
@@ -49,11 +67,20 @@ export class AuthComponent {
           this.cookieService.set('refreshToken', res.refreshToken);
 
           this.authService.isUserLoggedIn$.next(true);
+          this.authService.checkIsAdmin();
           this.context.completeWith();
           this.notesService.getNotes();
         }
       },
       error: (res: any) => {
+        console.log(res);
+
+        if (res.status === 405) {
+          const time = this.convertTo24HourFormat(res.error.unbanTime);
+          this.message$.next(
+            `u was blocked by administrator. u will unbanned at ${time}`
+          );
+        }
         if (res.status === 401) {
           this.authService.refresh();
           this.message$.next('incorrect data');
@@ -79,6 +106,7 @@ export class AuthComponent {
           this.cookieService.set('refreshToken', res.refreshToken);
           localStorage.setItem('keyId', res.keyId);
           this.authService.isUserLoggedIn$.next(true);
+          this.authService.checkIsAdmin();
           this.context.completeWith();
           this.notesService.getNotes();
         }

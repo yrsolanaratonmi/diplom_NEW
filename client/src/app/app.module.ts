@@ -34,6 +34,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NoteEditComponent } from './note-edit/note-edit.component';
 import { HttpClientModule } from '@angular/common/http';
 import { AuthComponent } from './auth/auth.component';
+import { AdminComponent } from './admin/admin.component';
+import { TuiChipModule } from '@taiga-ui/experimental';
+import { UserItemComponent } from './user-item/user-item.component';
 
 @NgModule({
   declarations: [
@@ -44,6 +47,8 @@ import { AuthComponent } from './auth/auth.component';
     NoteNewComponent,
     NoteEditComponent,
     AuthComponent,
+    AdminComponent,
+    UserItemComponent,
   ],
   imports: [
     HttpClientModule,
@@ -70,6 +75,7 @@ import { AuthComponent } from './auth/auth.component';
     TuiTagModule,
     TuiInputPasswordModule,
     TuiErrorModule,
+    TuiChipModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

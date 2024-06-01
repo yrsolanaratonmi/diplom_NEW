@@ -18,12 +18,32 @@ export class MenuComponent {
 
   notes$: Observable<Array<Note>> = this.notesService.notes$;
 
+  private convertTo24HourFormat(dateString) {
+    const date = new Date(dateString);
+
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const hours = date.getHours() + 3;
+    const minutes = date.getMinutes();
+
+    const formattedDay = day < 10 ? '0' + day : day;
+    const formattedMonth = month < 10 ? '0' + month : month;
+    const formattedHours = hours < 10 ? '0' + hours : hours;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+    return `${formattedDay}/${formattedMonth}/${year}, ${formattedHours}:${formattedMinutes}`;
+  }
+
   ngOnInit(): void {
-    //Called after the constructor, initializing input properties, and the first call to ngOnChanges.
-    //Add 'implements OnInit' to the class.
     this.notesService.getNotes().subscribe(
       (res) => this.notesService.notes$.next(res),
       (err) => {
+        if (err.status === 405) {
+          const time = this.convertTo24HourFormat(err.error.unbanTime);
+          alert(`u was blocked by administrator. u will unbanned at ${time}`);
+        }
         if (err.status === 401) {
           this.auth.refresh();
         }

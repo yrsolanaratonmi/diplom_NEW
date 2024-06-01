@@ -5,6 +5,9 @@ import { AuthComponent } from '../auth/auth.component';
 import { PolymorpheusComponent } from '@tinkoff/ng-polymorpheus';
 import { AuthService } from '../auth.service';
 import * as CryptoJS from 'crypto-js';
+import { jwtDecode } from 'jwt-decode';
+import { CookieService } from 'ngx-cookie-service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-header',
@@ -13,11 +16,15 @@ import * as CryptoJS from 'crypto-js';
 })
 export class HeaderComponent {
   isUserLoggedIn$ = this.authService.isUserLoggedIn$;
+
+  isUserAdmin$ = this.authService.isUserAdmin$;
   constructor(
     private readonly notesService: NotesService,
     @Inject(TuiDialogService) private readonly dialog: TuiDialogService,
     @Inject(Injector) private readonly injector: Injector,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly cookieService: CookieService,
+    private readonly router: Router
   ) {}
 
   darkMode = this.notesService.isDarkMode$;
@@ -50,6 +57,10 @@ export class HeaderComponent {
         alert(code);
       }
     );
+  }
+
+  goToAdminPage() {
+    this.router.navigate(['admin']);
   }
 
   private decode(content: string) {

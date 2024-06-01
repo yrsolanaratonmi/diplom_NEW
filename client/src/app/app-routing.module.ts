@@ -3,11 +3,18 @@ import { RouterModule, Routes } from '@angular/router';
 import { NoteViewComponent } from './note-view/note-view.component';
 import { NoteNewComponent } from './note-new/note-new.component';
 import { isNoteExistsGuard } from './is-note-exists.guard';
+import { AdminComponent } from './admin/admin.component';
+import { adminGuard } from './admin.guard';
 
 const routes: Routes = [
   {
     path: 'new',
     component: NoteNewComponent,
+  },
+  {
+    path: 'admin',
+    component: AdminComponent,
+    canActivate: [adminGuard],
   },
   {
     path: 'edit/:id',
@@ -19,6 +26,7 @@ const routes: Routes = [
     component: NoteViewComponent,
     canActivate: [isNoteExistsGuard],
   },
+
   {
     path: '**',
     redirectTo: 'new',

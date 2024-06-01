@@ -60,6 +60,14 @@ app.post("/", express.json(), async (req, res) => {
         createdAt: Date.now(),
     }
 
+
+    const userInDb = await db.query(`SELECT id, roles, password_hash, banTime FROM users WHERE id = '${userData.id}'`)
+     console.log(userInDb.rows[0], '-time')
+
+        if (+userInDb.rows[0].bantime > Date.now()) {
+            res.status(405).send({unbanTime: new Date(+userInDb.rows[0].bantime).toLocaleString()})
+            return
+        }
     console.log('new note / data set to database', 'todoId', todo.id, 'todoAuthor', todo.author, 'todoTitle', todo.title, 'todoDescription', todo.description)
 
     await db.query(`
@@ -91,6 +99,14 @@ app.patch("/:id", express.json(), async (req, res) => {
         description: userData.decode(req.body.description),
     }
 
+     const userInDb = await db.query(`SELECT id, roles, password_hash, banTime FROM users WHERE id = '${userData.id}'`)
+     console.log(userInDb.rows[0], '-time')
+
+        if (+userInDb.rows[0].bantime > Date.now()) {
+            res.status(405).send({unbanTime: new Date(+userInDb.rows[0].bantime).toLocaleString()})
+            return
+        }
+
 
      console.log('edit note / data set to database', 'todoTitle', userData.decode(req.body.title), 'todoDescription', userData.decode(req.body.description), 'todoId', todo.id, 'todoAuthor', todo.author)
     await db.query(`
@@ -108,6 +124,14 @@ app.patch("/:id", express.json(), async (req, res) => {
 app.delete("/:id", async (req, res) => {
        console.log('delete note / data from client', req.body)
     const userData = parseRequestUserData(req)
+
+     const userInDb = await db.query(`SELECT id, roles, password_hash, banTime FROM users WHERE id = '${userData.id}'`)
+     console.log(userInDb.rows[0], '-time')
+
+        if (+userInDb.rows[0].bantime > Date.now()) {
+            res.status(405).send({unbanTime: new Date(+userInDb.rows[0].bantime).toLocaleString()})
+            return
+        }
 
     const id = req.params.id;
 
@@ -137,6 +161,14 @@ app.get("/", async (req, res) => {
         author = req.query['author'] as string
     }
 
+
+     const userInDb = await db.query(`SELECT id, roles, password_hash, banTime FROM users WHERE id = '${userData.id}'`)
+     console.log(userInDb.rows[0], '-time')
+
+        if (+userInDb.rows[0].bantime > Date.now()) {
+            res.status(405).send({unbanTime: new Date(+userInDb.rows[0].bantime).toLocaleString()})
+            return
+        }
     console.log('get all notes / data for filter in database', 'author', author)
 
     const list = await db.query(`

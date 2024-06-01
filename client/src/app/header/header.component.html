@@ -19,6 +19,15 @@
 
   <div class="options">
     <button
+      *ngIf="isUserAdmin$ | async"
+      tuiButton
+      class="login-btn"
+      (click)="goToAdminPage()"
+    >
+      open admin page
+    </button>
+
+    <button
       *ngIf="!(isUserLoggedIn$ | async)"
       tuiButton
       class="login-btn"

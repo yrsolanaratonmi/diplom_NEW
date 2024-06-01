@@ -36,6 +36,8 @@ const parseRequestUserData = (req: express.Request): UserData => ({
 app.get("/code", async (req, res) => {
     const userData = parseRequestUserData(req);
 
+
+
     const redisKey = `login-code-${userData.id}`;
 
     const newKey = Math.floor(Math.random() * 1000) + 1000 + "";
