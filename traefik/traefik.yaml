@@ -16,7 +16,7 @@ api:
 certificatesResolvers:
   myresolver:
     acme:
-      email: landyrev.serg@gmail.com
+      email: rbarannik@sfedu.ru
       storage: /etc/traefik/acme/acme.json
       httpChallenge:
         entryPoint: web

@@ -1,12 +1,12 @@
 {
   "myresolver": {
     "Account": {
-      "Email": "landyrev.serg@gmail.com",
+      "Email": "rbarannik@sfedu.ru",
       "Registration": {
         "body": {
           "status": "valid",
           "contact": [
-            "mailto:landyrev.serg@gmail.com"
+            "mailto:rbarannik@sfedu.ru"
           ]
         },
         "uri": "https://acme-v02.api.letsencrypt.org/acme/acct/1705300497"
